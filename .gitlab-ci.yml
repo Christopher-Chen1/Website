@@ -1,0 +1,83 @@
+include:
+- project: devops/job-templates
+  ref: v3.0.0
+  file: artifactory-jobs.yml
+- project: devops/job-templates
+  ref: v3.0.0
+  file: javascript-jobs.yml
+- project: devops/job-templates
+  ref: v3.0.0
+  file: change-jobs.yml
+- project: devops/job-templates
+  ref: v3.0.0
+  file: cicd-stages.yml
+- project: devops/job-templates
+  ref: v3.0.0
+  file: test-jobs.yml
+- project: devops/job-templates
+  ref: v3.0.0
+  file: security-jobs.yml
+- project: devops/job-templates
+  ref: v3.0.0
+  file: deploy-jobs.yml
+- project: devops/cicd-constructs
+  ref: v3.0.0
+  file: cicd-constructs.yml
+
+variables:
+  APP_NAME: node-npm-blueprint-cloudnative
+  TARGET: target
+  BUILD_CMD: npm pack --legacy-peer-deps
+
+compile-package:
+  extends: .compile-package-js
+  variables:
+    PRE_BUILD_CMD: npm install . --save
+    BUILD_CMD: npm pack --legacy-peer-deps
+    TARGET: target/package
+  rules:
+  - if: $CI_COMMIT_BRANCH =~ /^([Mm]aster|[Mm]ain).*$/
+  - if: $CI_COMMIT_BRANCH =~ /^([fF]eature|[rR]elease).*$/
+
+unit-test:
+  extends: .unit-test-js
+  allow_failure: false
+  variables:
+    TEST_CMD: npm test
+  rules:
+  - if: $CI_COMMIT_BRANCH =~ /^([Mm]aster|[Mm]ain).*$/
+  - if: $CI_COMMIT_BRANCH =~ /^([fF]eature|[rR]elease).*$/
+
+code-quality:
+  extends: .code-quality
+  allow_failure: false
+  variables:
+    SONAR_PROJECT_NAME: $CI_PROJECT_NAME
+  rules:
+  - if: $CI_COMMIT_BRANCH =~ /^([Mm]aster|[Mm]ain).*$/
+  - if: $CI_COMMIT_BRANCH =~ /^([fF]eature|[rR]elease).*$/
+
+xray-scan:
+  extends: .xray-scan
+  allow_failure: false
+  rules:
+  - if: $CI_COMMIT_BRANCH =~ /^([Mm]aster|[Mm]ain).*$/
+  - if: $CI_COMMIT_BRANCH =~ /^([fF]eature|[rR]elease).*$/
+
+inclusive-lang:
+  extends: .inclusive_language
+  allow_failure: false
+  rules:
+  - if: $CI_COMMIT_BRANCH =~ /^([fF]eature|[rR]elease).*$/
+  - if: $CI_COMMIT_BRANCH =~ /^([Mm]aster|[Mm]ain).*$/
+
+publish-npm:
+  extends: .publish-npm
+  variables:
+    ARTIFACT_PATH: kv/VM/ARTIFACT
+    UPLOAD_PATH: cicd-1003184-npm-dev-local
+    PUBLISH_TOOL: node-library
+  rules:
+  - if: $CI_COMMIT_BRANCH =~ /^([Mm]aster|[Mm]ain).*$/
+  - if: $CI_COMMIT_BRANCH =~ /^([fF]eature|[rR]elease).*$/
+

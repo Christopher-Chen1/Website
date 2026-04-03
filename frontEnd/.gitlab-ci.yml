@@ -1,0 +1,111 @@
+variables:
+  ARTIFACTORY_VIRTUAL_REPO: https://artifacts.dell.com/artifactory/api/npm/dx-npm-prod/
+
+stages:
+  - prep
+  - build
+
+.nodejs_base_stage:
+  image: $HARBOR_NODE18
+  rules:
+    - if: $UPSTREAM_REF
+  tags:
+    - linux
+  before_script:
+    - npm config set registry $ARTIFACTORY_VIRTUAL_REPO
+    - npm config set strict-ssl false
+    - echo Preparing pipeline with artifacts from $UPSTREAM_REF
+    - ls -ls
+    - "[ ! -f version ] && echo Missing *version* file from upstream artifacts && exit 1"
+    - DDS_VERSION=$(cat version)
+    - "[ ! -d react ] && echo Missing *react* folder && exit 1"
+    - "[ ! -f src/devserver/DDSAll.tsx ] && echo Missing *src/devserver/DDSAll.tsx* file from upstream artifacts && exit 1"
+    # packing the incoming library from upstream artifact
+    - cd react && npm pack && cd -
+    - "[ ! -f react/dds-react-$DDS_VERSION.tgz ] && echo Missing *react/dds-react-$DDS_VERSION.tgz* file && exit 1"
+  script:
+    # put in a env variable the content of version file
+    # copy dds-all from the artifacts of upstream pipeline
+    # - rm -f dds-all.html
+    # - cp src/dds-all.html .
+    # move to target APP_DIR directory to start the application
+    - echo "Go to directory $APP_DIR"
+    - cd $APP_DIR
+    - ls -la
+    # Install default library dependencies
+    - npm i --ignore-scripts --force
+    # install library from artifacts of upstream pipeline
+    - npm i ../react/dds-react-$DDS_VERSION.tgz --force
+    # replace all relative paths from upstream artifact with package-like path
+    - cat ../src/devserver/DDSAll.tsx |
+      sed 's|@core/scss|@dds/react/css|g' |
+      sed 's|.scss|.css|g' |
+      sed 's|../styles/|@dds/react/css/|g' |
+      sed 's|../components/index|@dds/react|' > src/App.tsx
+    - cat src/App.tsx
+    - npm run build
+  needs:
+    - project: dao/dell-digital-design/design-language-system/systems/dds-2.0-react
+      job: build
+      ref: $UPSTREAM_REF
+      artifacts: true
+
+cra18-typescript:
+  stage: prep
+  extends: .nodejs_base_stage
+  variables:
+    APP_DIR: cra18-typescript
+  artifacts:
+    expire_in: 1 week
+    paths:
+      - cra18-typescript/src
+
+cra17-typescript:
+  stage: prep
+  extends: .nodejs_base_stage
+  variables:
+    APP_DIR: cra17-typescript
+  artifacts:
+    expire_in: 1 week
+    paths:
+      - cra17-typescript/src
+
+cra16-typescript:
+  stage: prep
+  extends: .nodejs_base_stage
+  variables:
+    APP_DIR: cra16-typescript
+  artifacts:
+    expire_in: 1 week
+    paths:
+      - cra16-typescript/src
+
+vite18-typescript:
+  stage: prep
+  extends: .nodejs_base_stage
+  variables:
+    APP_DIR: vite18-typescript
+  artifacts:
+    expire_in: 1 week
+    paths:
+      - vite18-typescript/src
+
+vite17-typescript:
+  stage: prep
+  extends: .nodejs_base_stage
+  variables:
+    APP_DIR: vite17-typescript
+  artifacts:
+    expire_in: 1 week
+    paths:
+      - vite17-typescript/src
+
+vite16-typescript:
+  stage: prep
+  extends: .nodejs_base_stage
+  variables:
+    APP_DIR: vite16-typescript
+  artifacts:
+    expire_in: 1 week
+    paths:
+      - vite16-typescript/src
