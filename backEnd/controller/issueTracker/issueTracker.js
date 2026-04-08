@@ -33,6 +33,7 @@ const getPqmList = async (req, res) => {
         [Discretionary Field], [System QTY (WIP)], [System QTY (Backlog)], [Region], [Customer Name],
         [Issue Type], [war_room_flag], [SLA], [Additional Details / Updates], [Mitigation / Contingency]
       FROM [dbo].[PQM_List]
+      WHERE [Status] IS NULL OR UPPER(LTRIM(RTRIM([Status]))) <> 'CLOSED'
       ORDER BY [Date Submitted] DESC
     `);
 
