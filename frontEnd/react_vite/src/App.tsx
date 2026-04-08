@@ -13,6 +13,7 @@ import { Login } from "./auth/Login";
 import { Callback } from "./auth/Callback";
 import FactoryLog from "./pages/Quality/FactoryLog";
 import IssueTracker from "./pages/IssueTracker/IssueTracker";
+import PQMList from "./pages/IssueTracker/PQMList";
 
 const App = () => (
   
@@ -25,6 +26,7 @@ const App = () => (
       <Route path="/shortage-report" element={<PrivateRoute element={<ShortageReport />} />} />
       <Route path="/factory-log" element={<PrivateRoute element={<FactoryLog />} />} />
       <Route path="/issue-tracker" element={<PrivateRoute element={<IssueTracker />} />} />
+      <Route path="/pqm-list" element={<PrivateRoute element={<PQMList />} />} />
     </Route>
     <Route path="/noaccess" element={<NoAccess />} /> {/* 无权限页面 */}
       </Routes>

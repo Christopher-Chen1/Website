@@ -33,6 +33,9 @@ import {
            case "/issue-tracker":
           setSelectedKey("i4-1");
           break;
+          case "/pqm-list":
+          setSelectedKey("i4-2");
+          break;
         default:
           setSelectedKey(null);
       }
@@ -116,7 +119,19 @@ import {
                 target: "_self",
               })}
             >
-              GCS OWD Issue Tracker
+              GCS WarRoom Issue Tracker
+            </DDSSideNavItem>
+            <DDSSideNavItem
+              id="i4-2"
+              icon="stack"
+              href={useHref("/pqm-list")}
+              onClick={useLinkClickHandler("/pqm-list", {
+                replace: false,
+                state: undefined,
+                target: "_self",
+              })}
+            >
+              GCS PQM List
             </DDSSideNavItem>
           </DDSSideNavGroup>
         </DDSSideNav>
