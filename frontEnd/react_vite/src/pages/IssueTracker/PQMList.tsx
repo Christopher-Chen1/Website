@@ -1,220 +1,56 @@
-import React, { useState } from "react";
-import { DDSTable } from "@dds/react";
+import { useEffect, useState } from 'react';
+import IssueTableEditor, { IssueRow } from './IssueTableEditor';
 
-const PQMList: React.FC = () => {
-  const [columns] = useState([
-    { value: "Issue ID#" },
-    { value: "Short Description" },
-    { value: "Region" },
-    { value: "Category" },
-    { value: "Severity" },
-    { value: "Date Raised" },
-    { value: "Raised by" },
-    { value: "Current Status" },
-    { value: "Assigned to" },
-    { value: "TT Info (if relevant)" },
-    { value: "Date Closed" },
-    { value: "Additional Details / Updates" },
-    { value: "Mitigation / Contingency" },
-  ]);
+const PQMList = () => {
+  const [rows, setRows] = useState<IssueRow[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const [data] = useState([
-    {
-      columns: [
-        { value: "I-001" },
-        { value: "Brians Issue" },
-        { value: "Global" },
-        { value: "Financial Force" },
-        { value: "1 - Critical" },
-        { value: "9-Feb-26" },
-        { value: "Brian M" },
-        { value: "Blocked" },
-        { value: "Doug" },
-        { value: "R100200330" },
-        { value: "" },
-        { value: "Doug working with Mubair - TT raised" },
-        { value: "Put information here..." },
-      ],
-    },
-    {
-      columns: [
-        { value: "I-002" },
-        { value: "Mo's Issue" },
-        { value: "APJ" },
-        { value: "Product Data / Items" },
-        { value: "3 - High" },
-        { value: "10-Feb-26" },
-        { value: "Mauricio S" },
-        { value: "In Progress" },
-        { value: "Jason" },
-        { value: "" },
-        { value: "" },
-        { value: "Some issue Mo has around PIM in APJ. Jason chasing information" },
-        { value: "Put information here..." },
-      ],
-    },
-    {
-      columns: [
-        { value: "I-003" },
-        { value: "Chris's issue" },
-        { value: "Global" },
-        { value: "Product Data / Items" },
-        { value: "5 - Cosmetic / NTH" },
-        { value: "11-Feb-26" },
-        { value: "Chris W" },
-        { value: "Closed" },
-        { value: "Jared" },
-        { value: "" },
-        { value: "12-Feb-26" },
-        { value: "Chris didn't like the color of the EPN landing page - wanted it changed." },
-        { value: "Put information here..." },
-      ],
-    },
-    {
-      columns: [
-        { value: "I-004" },
-        { value: "Doug's Issue" },
-        { value: "AMER" },
-        { value: "CSF" },
-        { value: "3 - Medium" },
-        { value: "12-Feb-26" },
-        { value: "Doug A" },
-        { value: "In Progress" },
-        { value: "Cara" },
-        { value: "R33002202" },
-        { value: "" },
-        { value: "CSF page not working as expected - Cara working with IT to" },
-        { value: "Put information here..." },
-      ],
-    },
-    {
-      columns: [
-        { value: "I-005" },
-        { value: "Messaging issue with" },
-        { value: "LA" },
-        { value: "Messaging - Factory" },
-        { value: "4 - Low" },
-        { value: "13-Feb-26" },
-        { value: "Cara" },
-        { value: "New" },
-        { value: "" },
-        { value: "" },
-        { value: "" },
-        { value: "Pending review to" },
-        { value: "Put information here..." },
-      ],
-    },
-    {
-      columns: [
-        { value: "I-006" },
-        { value: "" },
-        { value: "" },
-        { value: "" },
-        { value: "" },
-        { value: "" },
-        { value: "" },
-        { value: "" },
-        { value: "" },
-        { value: "" },
-        { value: "" },
-        { value: "" },
-        { value: "" },
-      ],
-    },
-    {
-      columns: [
-        { value: "I-007" },
-        { value: "" },
-        { value: "LA" },
-        { value: "Engineering" },
-        { value: "3 - Medium" },
-        { value: "25-Feb-26" },
-        { value: "Chris W" },
-        { value: "In Progress" },
-        { value: "" },
-        { value: "" },
-        { value: "" },
-        { value: "" },
-        { value: "" },
-      ],
-    },
-    {
-      columns: [
-        { value: "I-008" },
-        { value: "" },
-        { value: "" },
-        { value: "" },
-        { value: "" },
-        { value: "" },
-        { value: "" },
-        { value: "" },
-        { value: "" },
-        { value: "" },
-        { value: "" },
-        { value: "" },
-        { value: "" },
-      ],
-    },
-    {
-      columns: [
-        { value: "I-009" },
-        { value: "" },
-        { value: "" },
-        { value: "" },
-        { value: "" },
-        { value: "" },
-        { value: "" },
-        { value: "" },
-        { value: "" },
-        { value: "" },
-        { value: "" },
-        { value: "" },
-        { value: "" },
-      ],
-    },
-    {
-      columns: [
-        { value: "I-010" },
-        { value: "" },
-        { value: "" },
-        { value: "" },
-        { value: "" },
-        { value: "" },
-        { value: "" },
-        { value: "" },
-        { value: "" },
-        { value: "" },
-        { value: "" },
-        { value: "" },
-        { value: "" },
-      ],
-    },
-    {
-      columns: [
-        { value: "I-011" },
-        { value: "CArray over Dev issues?" },
-        { value: "" },
-        { value: "" },
-        { value: "" },
-        { value: "" },
-        { value: "" },
-        { value: "" },
-        { value: "" },
-        { value: "" },
-        { value: "" },
-        { value: "" },
-        { value: "" },
-      ],
-    },
-  ]);
+  const fetchPqmRows = async () => {
+    setLoading(true);
+    try {
+      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/issue-tracker/pqm-list`);
+      const data = await response.json();
+      setRows(data);
+    } catch (error) {
+      console.error('Failed to fetch PQM list:', error);
+      setRows([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchPqmRows();
+  }, []);
+
+  const handleSave = async (psrNumber: string, payload: {
+    war_room_flag: string | null;
+    additional_details_updates: string | null;
+    mitigation_contingency: string | null;
+  }) => {
+    const response = await fetch(
+      `${import.meta.env.VITE_API_BASE_URL}/issue-tracker/pqm-list/${encodeURIComponent(psrNumber)}`,
+      {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      },
+    );
+
+    if (!response.ok) {
+      throw new Error('Failed to save row');
+    }
+
+    await fetchPqmRows();
+  };
 
   return (
-    <div style={{ padding: "20px" }}>
-      <h2 style={{ color: "#0076ce", fontStyle: "italic", marginBottom: "12px" }}>
-        GCS PQM List
-      </h2>
-      <DDSTable columnFilter columns={columns} data={data} />
-    </div>
+    <IssueTableEditor
+      title="GCS PQM List"
+      rows={rows}
+      loading={loading}
+      onSave={handleSave}
+    />
   );
 };
 
