@@ -8,6 +8,7 @@ const daoRegionRoutes = require('./routes/DAORegionIndex');
 const emeaRegionRoutes = require('./routes/EMEARegionIndex');
 const shortageRoutes = require('./routes/shortageIndex');
 const secondTorchRoutes = require('./routes/secondTorchIndex');
+const issueTrackerRoutes = require('./routes/issueTrackerIndex');
 //const fileUpload = require('express-fileupload');
 require('dotenv').config(); // 加载 .env 文件中的环境变量
 
@@ -32,6 +33,7 @@ app.use('/api', daoRegionRoutes);
 app.use('/api', emeaRegionRoutes);
 app.use('/api', shortageRoutes);
 app.use('/api', secondTorchRoutes);
+app.use('/api', issueTrackerRoutes);
 
 // 错误处理中间件
 //app.use(errorHandler);
