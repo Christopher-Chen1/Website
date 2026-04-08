@@ -17,7 +17,7 @@ import { NoHashQueryStringUtils } from '../noHashQueryUtil';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { useUserStore } from '../store/userStore'; // 导入 Zustand store
-import { authorizedUsers } from '../config/permissions';
+//import { authorizedUsers } from '../config/permissions';
 
 export const Callback = () => {
   const [error, setError] = useState<any>(null);
@@ -38,7 +38,7 @@ export const Callback = () => {
     const notifier = new AuthorizationNotifier();
     authorizationHandler.setAuthorizationNotifier(notifier);
 
-    notifier.setAuthorizationListener((request, response, error) => {
+    notifier.setAuthorizationListener((request, response) => {
       if (response) {
         // Authorization is complete, now perform token request
         let extras: StringMap | undefined = undefined;
