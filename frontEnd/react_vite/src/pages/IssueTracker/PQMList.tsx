@@ -1,4 +1,5 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
+import { DDSButton, DDSInput, DDSTable, DDSTextArea } from "@dds/react";
 
 type PqmRow = {
   [key: string]: unknown;
@@ -16,6 +17,18 @@ const emptyToNull = (value: string): string | null => {
   const trimmed = value.trim();
   return trimmed === "" ? null : trimmed;
 };
+
+const columns = [
+  { value: "PSR Number" },
+  { value: "Title" },
+  { value: "Status" },
+  { value: "Region" },
+  { value: "Issue Type" },
+  { value: "War Room Flag (Y/N)" },
+  { value: "Additional Details / Updates" },
+  { value: "Mitigation / Contingency" },
+  { value: "Action" },
+];
 
 const PQMList: React.FC = () => {
   const [rows, setRows] = useState<PqmRow[]>([]);
@@ -88,73 +101,75 @@ const PQMList: React.FC = () => {
     }
   };
 
+  const data = useMemo(
+    () =>
+      rows.map((row) => {
+        const psrNumber = row["PSR Number"];
+        return {
+          columns: [
+            { value: psrNumber },
+            { value: String(row.Title ?? "") },
+            { value: String(row.Status ?? "") },
+            { value: String(row.Region ?? "") },
+            { value: String(row["Issue Type"] ?? "") },
+            {
+              value: (
+                <DDSInput
+                  aria-label={`war-room-flag-${psrNumber}`}
+                  value={String(row.war_room_flag ?? "")}
+                  maxLength={1}
+                  onInput={(e) => updateLocalRow(psrNumber, "war_room_flag", (e.target as HTMLInputElement).value)}
+                />
+              ),
+            },
+            {
+              value: (
+                <DDSTextArea
+                  aria-label={`additional-details-${psrNumber}`}
+                  value={String(row["Additional Details / Updates"] ?? "")}
+                  onInput={(e) =>
+                    updateLocalRow(
+                      psrNumber,
+                      "Additional Details / Updates",
+                      (e.target as HTMLTextAreaElement).value,
+                    )
+                  }
+                />
+              ),
+            },
+            {
+              value: (
+                <DDSTextArea
+                  aria-label={`mitigation-${psrNumber}`}
+                  value={String(row["Mitigation / Contingency"] ?? "")}
+                  onInput={(e) =>
+                    updateLocalRow(psrNumber, "Mitigation / Contingency", (e.target as HTMLTextAreaElement).value)
+                  }
+                />
+              ),
+            },
+            {
+              value: (
+                <DDSButton
+                  size="sm"
+                  disabled={savingId === psrNumber}
+                  onClick={() => saveRow(row)}
+                >
+                  {savingId === psrNumber ? "Saving..." : "Save"}
+                </DDSButton>
+              ),
+            },
+          ],
+        };
+      }),
+    [rows, savingId],
+  );
+
   return (
     <div style={{ padding: "20px" }}>
       <h2 style={{ color: "#0076ce", fontStyle: "italic", marginBottom: "12px" }}>GCS PQM List</h2>
       {error && <p style={{ color: "#b00020" }}>{error}</p>}
-      {loading ? (
-        <p>Loading...</p>
-      ) : (
-        <div style={{ overflowX: "auto" }}>
-          <table className="dds__data-table" style={{ minWidth: "1200px", width: "100%" }}>
-            <thead>
-              <tr>
-                <th>PSR Number</th>
-                <th>Title</th>
-                <th>Status</th>
-                <th>Region</th>
-                <th>Issue Type</th>
-                <th>War Room Flag (Y/N)</th>
-                <th>Additional Details / Updates</th>
-                <th>Mitigation / Contingency</th>
-                <th>Action</th>
-              </tr>
-            </thead>
-            <tbody>
-              {rows.map((row) => {
-                const psrNumber = row["PSR Number"];
-                return (
-                  <tr key={psrNumber}>
-                    <td>{psrNumber}</td>
-                    <td>{String(row.Title ?? "")}</td>
-                    <td>{String(row.Status ?? "")}</td>
-                    <td>{String(row.Region ?? "")}</td>
-                    <td>{String(row["Issue Type"] ?? "")}</td>
-                    <td>
-                      <input
-                        value={String(row.war_room_flag ?? "")}
-                        onChange={(e) => updateLocalRow(psrNumber, "war_room_flag", e.target.value)}
-                        maxLength={1}
-                      />
-                    </td>
-                    <td>
-                      <textarea
-                        value={String(row["Additional Details / Updates"] ?? "")}
-                        onChange={(e) =>
-                          updateLocalRow(psrNumber, "Additional Details / Updates", e.target.value)
-                        }
-                        rows={2}
-                      />
-                    </td>
-                    <td>
-                      <textarea
-                        value={String(row["Mitigation / Contingency"] ?? "")}
-                        onChange={(e) => updateLocalRow(psrNumber, "Mitigation / Contingency", e.target.value)}
-                        rows={2}
-                      />
-                    </td>
-                    <td>
-                      <button type="button" onClick={() => saveRow(row)} disabled={savingId === psrNumber}>
-                        {savingId === psrNumber ? "Saving..." : "Save"}
-                      </button>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
-      )}
+      {loading ? <p>Loading...</p> : <DDSTable columnFilter columns={columns} data={data} />}
     </div>
   );
 };
