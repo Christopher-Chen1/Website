@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { DDSButton, DDSInput, DDSTable, DDSTextArea } from "@dds/react";
+import { DDSButton, DDSInput, DDSPagination, DDSTable, DDSTextArea } from "@dds/react";
 
 type PqmRow = {
   [key: string]: unknown;
@@ -35,6 +35,8 @@ const PQMList: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [savingId, setSavingId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
 
   const fetchPqmList = async () => {
     setLoading(true);
@@ -56,6 +58,18 @@ const PQMList: React.FC = () => {
   useEffect(() => {
     fetchPqmList();
   }, []);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [pageSize]);
+
+  const pagination = useMemo(
+    () => ({
+      currentPage,
+      pageSize,
+    }),
+    [currentPage, pageSize],
+  );
 
   const updateLocalRow = (psrNumber: string, field: keyof PqmRow, value: string) => {
     setRows((prev) =>
@@ -169,7 +183,21 @@ const PQMList: React.FC = () => {
     <div style={{ padding: "20px" }}>
       <h2 style={{ color: "#0076ce", fontStyle: "italic", marginBottom: "12px" }}>GCS PQM List</h2>
       {error && <p style={{ color: "#b00020" }}>{error}</p>}
-      {loading ? <p>Loading...</p> : <DDSTable columnFilter columns={columns} data={data} />}
+      {loading ? (
+        <p>Loading...</p>
+      ) : (
+        <>
+          <DDSTable columnFilter columns={columns} data={data} pagination={pagination} />
+          <DDSPagination
+            currentPage={currentPage}
+            totalItems={data.length}
+            pageSize={pageSize}
+            pageSizeOptions={[10, 20, 50]}
+            onPageChange={setCurrentPage}
+            onPageSizeChange={setPageSize}
+          />
+        </>
+      )}
     </div>
   );
 };
