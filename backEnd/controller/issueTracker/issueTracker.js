@@ -6,6 +6,20 @@ const ALLOWED_UPDATE_FIELDS = {
   mitigation_contingency: '[Mitigation / Contingency]',
 };
 
+const normalizeOptionalText = (value) => {
+  if (value === null || value === undefined) {
+    return null;
+  }
+  const trimmed = String(value).trim();
+  return trimmed === '' ? null : trimmed;
+};
+
+const formatUpdatePrefix = (userName, content) => {
+  const now = new Date();
+  const datePrefix = `${now.getMonth() + 1}/${now.getDate()}/${now.getFullYear()}`;
+  return `${datePrefix} ${userName}: ${content}`;
+};
+
 const normalizeWarRoomFlag = (value) => {
   if (value === null || value === undefined || value === '') {
     return null;
@@ -62,6 +76,7 @@ const updatePqmEditableFields = async (req, res) => {
       war_room_flag: rawWarRoomFlag,
       additional_details_updates: additionalDetails,
       mitigation_contingency: mitigationContingency,
+      updated_by: rawUpdatedBy,
     } = req.body;
 
     if (!psrNumber) {
@@ -79,13 +94,41 @@ const updatePqmEditableFields = async (req, res) => {
     }
 
     if (Object.prototype.hasOwnProperty.call(req.body, 'additional_details_updates')) {
-      updates.push(`${ALLOWED_UPDATE_FIELDS.additional_details_updates} = @additional_details_updates`);
-      request.input('additional_details_updates', additionalDetails === '' ? null : additionalDetails ?? null);
+      const normalizedAdditional = normalizeOptionalText(additionalDetails);
+      if (normalizedAdditional === null) {
+        updates.push(`${ALLOWED_UPDATE_FIELDS.additional_details_updates} = NULL`);
+      } else {
+        const updatedBy = normalizeOptionalText(rawUpdatedBy) || 'Unknown User';
+        const formattedEntry = formatUpdatePrefix(updatedBy, normalizedAdditional);
+        updates.push(
+          `${ALLOWED_UPDATE_FIELDS.additional_details_updates} = CASE
+            WHEN ${ALLOWED_UPDATE_FIELDS.additional_details_updates} IS NULL
+              OR LTRIM(RTRIM(${ALLOWED_UPDATE_FIELDS.additional_details_updates})) = ''
+            THEN @additional_details_entry
+            ELSE CONCAT(@additional_details_entry, CHAR(10), ${ALLOWED_UPDATE_FIELDS.additional_details_updates})
+          END`,
+        );
+        request.input('additional_details_entry', formattedEntry);
+      }
     }
 
     if (Object.prototype.hasOwnProperty.call(req.body, 'mitigation_contingency')) {
-      updates.push(`${ALLOWED_UPDATE_FIELDS.mitigation_contingency} = @mitigation_contingency`);
-      request.input('mitigation_contingency', mitigationContingency === '' ? null : mitigationContingency ?? null);
+      const normalizedMitigation = normalizeOptionalText(mitigationContingency);
+      if (normalizedMitigation === null) {
+        updates.push(`${ALLOWED_UPDATE_FIELDS.mitigation_contingency} = NULL`);
+      } else {
+        const updatedBy = normalizeOptionalText(rawUpdatedBy) || 'Unknown User';
+        const formattedEntry = formatUpdatePrefix(updatedBy, normalizedMitigation);
+        updates.push(
+          `${ALLOWED_UPDATE_FIELDS.mitigation_contingency} = CASE
+            WHEN ${ALLOWED_UPDATE_FIELDS.mitigation_contingency} IS NULL
+              OR LTRIM(RTRIM(${ALLOWED_UPDATE_FIELDS.mitigation_contingency})) = ''
+            THEN @mitigation_contingency_entry
+            ELSE CONCAT(@mitigation_contingency_entry, CHAR(10), ${ALLOWED_UPDATE_FIELDS.mitigation_contingency})
+          END`,
+        );
+        request.input('mitigation_contingency_entry', formattedEntry);
+      }
     }
 
     if (updates.length === 0) {
@@ -94,11 +137,16 @@ const updatePqmEditableFields = async (req, res) => {
 
     request.input('psr_number', psrNumber);
 
-    await request.query(`
-      UPDATE [dbo].[PQM_List]
+    const result = await request.query(`
+      UPDATE target WITH (UPDLOCK, ROWLOCK)
       SET ${updates.join(', ')}
-      WHERE [PSR Number] = @psr_number
+      FROM [dbo].[PQM_List] AS target
+      WHERE target.[PSR Number] = @psr_number
     `);
+
+    if (result.rowsAffected[0] === 0) {
+      return res.status(404).json({ error: 'Record not found' });
+    }
 
     return res.json({ message: 'Record updated successfully' });
   } catch (error) {

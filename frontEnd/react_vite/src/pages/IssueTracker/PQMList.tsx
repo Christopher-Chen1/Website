@@ -18,6 +18,24 @@ const emptyToNull = (value: string): string | null => {
   return trimmed === "" ? null : trimmed;
 };
 
+const getCurrentUserDisplayName = (): string => {
+  try {
+    const raw = sessionStorage.getItem("user_info");
+    if (!raw) return "Unknown User";
+    const parsed = JSON.parse(raw) as Record<string, string>;
+    return (
+      parsed.name ||
+      parsed.displayName ||
+      parsed.preferred_username ||
+      parsed.username ||
+      parsed.account_alias_name ||
+      "Unknown User"
+    );
+  } catch {
+    return "Unknown User";
+  }
+};
+
 const columns = [
   { value: "PSR Number" },
   { value: "Title" },
@@ -32,6 +50,7 @@ const columns = [
 
 const PQMList: React.FC = () => {
   const [rows, setRows] = useState<PqmRow[]>([]);
+  const [originalRows, setOriginalRows] = useState<Record<string, PqmRow>>({});
   const [loading, setLoading] = useState(false);
   const [savingId, setSavingId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -48,6 +67,12 @@ const PQMList: React.FC = () => {
       }
       const data = await response.json();
       setRows(data);
+      setOriginalRows(
+        data.reduce((acc: Record<string, PqmRow>, row: PqmRow) => {
+          acc[row["PSR Number"]] = row;
+          return acc;
+        }, {}),
+      );
     } catch (err) {
       setError(err instanceof Error ? err.message : "Unknown error");
     } finally {
@@ -86,6 +111,33 @@ const PQMList: React.FC = () => {
 
   const saveRow = async (row: PqmRow) => {
     const psrNumber = row["PSR Number"];
+    const originalRow = originalRows[psrNumber];
+    const payload: Record<string, string | null> = {};
+    const currentWarRoomFlag = emptyToNull(String(row.war_room_flag ?? ""))?.toUpperCase() ?? null;
+    const originalWarRoomFlag = emptyToNull(String(originalRow?.war_room_flag ?? ""))?.toUpperCase() ?? null;
+    const currentAdditional = emptyToNull(String(row["Additional Details / Updates"] ?? ""));
+    const originalAdditional = emptyToNull(String(originalRow?.["Additional Details / Updates"] ?? ""));
+    const currentMitigation = emptyToNull(String(row["Mitigation / Contingency"] ?? ""));
+    const originalMitigation = emptyToNull(String(originalRow?.["Mitigation / Contingency"] ?? ""));
+
+    if (currentWarRoomFlag !== originalWarRoomFlag) {
+      payload.war_room_flag = currentWarRoomFlag;
+    }
+    if (currentAdditional !== originalAdditional) {
+      payload.additional_details_updates = currentAdditional;
+    }
+    if (currentMitigation !== originalMitigation) {
+      payload.mitigation_contingency = currentMitigation;
+    }
+
+    if (Object.keys(payload).length === 0) {
+      return;
+    }
+
+    if (payload.additional_details_updates !== undefined || payload.mitigation_contingency !== undefined) {
+      payload.updated_by = getCurrentUserDisplayName();
+    }
+
     setSavingId(psrNumber);
     setError(null);
 
@@ -95,11 +147,7 @@ const PQMList: React.FC = () => {
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({
-          war_room_flag: emptyToNull(String(row.war_room_flag ?? ""))?.toUpperCase() ?? null,
-          additional_details_updates: emptyToNull(String(row["Additional Details / Updates"] ?? "")),
-          mitigation_contingency: emptyToNull(String(row["Mitigation / Contingency"] ?? "")),
-        }),
+        body: JSON.stringify(payload),
       });
 
       if (!response.ok) {
